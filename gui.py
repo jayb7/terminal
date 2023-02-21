@@ -2,10 +2,13 @@ import tkinter as tk
 from bybit_api import client
 from order_creator import create_order
 from symbol_searcher import search_symbols
+print("Starting script...")
 
 def create_gui():
     # Create the main window
     root = tk.Tk()
+    print("Created window...")
+
     root.title("Bybit Order Creator")
 
     # Get the list of symbols using the Symbol resource
@@ -52,8 +55,6 @@ def create_gui():
 
     # Run the main loop
     root.mainloop()
-    if __name__ == "__main__":
-        app = App()
-        app.mainloop()
 
-
+if __name__ == "__main__":
+    create_gui()
