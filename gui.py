@@ -1,30 +1,59 @@
 import tkinter as tk
-from terminal.config import Config
+from bybit_api import client
+from order_creator import create_order
+from symbol_searcher import search_symbols
+
+def create_gui():
+    # Create the main window
+    root = tk.Tk()
+    root.title("Bybit Order Creator")
+
+    # Get the list of symbols using the Symbol resource
+    symbol_data = client.Symbol.Symbol_get().result()[0]
+    symbols = [symbol['name'] for symbol in symbol_data['result']]
+
+    # Create a dropdown menu for symbol selection
+    symbol_var = tk.StringVar()
+    symbol_var.set(symbols[0])  # default value
+    symbol_menu = tk.OptionMenu(root, symbol_var, *symbols)
+    symbol_menu.pack()
+
+    # Create the Entry widget for the search query
+    search_entry = tk.Entry(root)
+    search_entry.pack()
+
+    # Bind the <KeyRelease> event to the Entry widget
+    search_entry.bind('<KeyRelease>', lambda event: search_symbols(search_entry, symbol_var, symbol_menu, symbols))
+
+    # Create the label and entry widgets for quantity
+    qty_label = tk.Label(root, text="Enter the quantity:")
+    qty_label.pack()
+
+    qty_entry = tk.Entry(root)
+    qty_entry.pack()
+
+    # Create the label and entry widgets for leverage
+    leverage_label = tk.Label(root, text="Enter the leverage:")
+    leverage_label.pack()
+
+    leverage_entry = tk.Entry(root)
+    leverage_entry.insert(0, "1")  # Set the default leverage to 1
+    leverage_entry.pack()
+
+    # Create a dropdown menu for side selection
+    side_var = tk.StringVar()
+    side_var.set("Buy")  # default value
+    side_menu = tk.OptionMenu(root, side_var, "Buy", "Sell")
+    side_menu.pack()
+
+    # Create the button to create the order
+    create_button = tk.Button(root, text="Create Order", command=lambda: create_order(symbol_var, qty_entry, leverage_entry, side_var))
+    create_button.pack()
+
+    # Run the main loop
+    root.mainloop()
+    if __name__ == "__main__":
+        app = App()
+        app.mainloop()
 
 
-class App(tk.Tk):
-    def __init__(self):
-        super().__init__()
-        self.config = Config()
-        self.title("Python Terminal")
-        self.geometry("500x500")
-        self.text_area = tk.Text(self)
-        self.text_area.grid(row=0, column=0, sticky="nsew")
-        self.scrollbar = tk.Scrollbar(self, command=self.text_area.yview)
-        self.scrollbar.grid(row=0, column=1, sticky="ns")
-        self.text_area.config(yscrollcommand=self.scrollbar.set)
-        self.input_field = tk.Entry(self)
-        self.input_field.grid(row=1, column=0, sticky="ew")
-        self.input_field.bind("<Return>", self.process_input)
-
-    def process_input(self, event):
-        input_text = self.input_field.get()
-        self.input_field.delete(0, tk.END)
-        self.text_area.insert(tk.END, f"{input_text}\n")
-        if input_text == "quit":
-            self.destroy()
-
-
-if __name__ == "__main__":
-    app = App()
-    app.mainloop()
