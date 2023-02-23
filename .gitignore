@@ -173,4 +173,3 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
-main.py

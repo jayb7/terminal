@@ -5,7 +5,7 @@ from order_creator import create_order
 from symbol_searcher import search_symbols
 
 def get_news_data():
-    url = "https://news.treeofalpha.com/api/news?limit=2"
+    url = "https://news.treeofalpha.com/api/news?limit=100"
     response = requests.get(url)
     if response.status_code == 200:
         return response.json()
@@ -15,7 +15,87 @@ def get_news_data():
 def create_gui():
     # Create the main window
     root = tk.Tk()
-    root.title("Bybit Order Creator and News")
+    root.configure(background='#18122B')
+    root.geometry("1200x700")
+    root.title("JTerminal")
+
+    # Get the news data
+    news_data = get_news_data()
+
+    # Extract symbols from news data
+    symbols = []
+    if news_data is not None:
+        for item in news_data:
+            symbol = item.get("symbol")
+            if symbol:
+                symbols.append(symbol)
+
+     # Remove duplicates and sort the list
+    symbols = sorted(list(set(symbols)))
+
+    # Create a frame for the news widgets
+    news_frame = tk.Frame(root)
+    news_frame.pack(padx=20, pady=20, side=tk.TOP)
+
+    # Create a frame for Other news
+    other_news_frame = tk.Frame(news_frame)
+    other_news_frame.pack(pady=10)
+
+    # Create a label for Other news
+    other_news_label = tk.Label(other_news_frame, text="Other News", font=("Helvetica", 16), bg="#443C68", fg="#ffffff")
+    other_news_label.pack()
+
+   # Create a frame for Twitter news
+    twitter_news_frame = tk.Frame(news_frame)
+    twitter_news_frame.pack(pady=10)
+
+    # Create a label for Twitter news
+    twitter_news_label = tk.Label(twitter_news_frame, text="Twitter News", font=("Helvetica", 16), bg="#443C68", fg="#ffffff")
+    twitter_news_label.pack()
+
+   # Add the news data to the GUI
+    if news_data is not None:
+        latest_twitter_item = None
+        latest_other_item = None
+        for item in news_data:
+            source = item.get("source", "")
+            if source == "Twitter":
+             if latest_twitter_item is None or (item.get("published_at") is not None and latest_twitter_item.get("published_at") is not None and item.get("published_at") > latest_twitter_item.get("published_at")):
+                 latest_twitter_item = item
+            else:
+                if latest_other_item is None or (item.get("published_at") is not None and latest_other_item.get("published_at") is not None and item.get("published_at") > latest_other_item.get("published_at")):
+                    latest_other_item = item
+
+
+        # Add the latest Twitter item to the GUI
+        if latest_twitter_item is not None:
+            title = latest_twitter_item.get("title", "")
+            content = latest_twitter_item.get("content", "")
+            bg_color = '#443C68'
+            news_title_label = tk.Label(twitter_news_frame, text=title, font=("Helvetica", 16), bg=bg_color, fg="#ffffff")
+            news_title_label.pack()
+            if content:
+                news_content_label = tk.Label(twitter_news_frame, text=content, font=("Helvetica", 12), bg=bg_color, fg="#ffffff", wraplength=600)
+                news_content_label.pack()
+                news_twitter_source_label = tk.Label(twitter_news_frame, text="source: Twitter", font=("Helvetica", 10))
+                news_twitter_source_label.pack()
+
+        # Add the latest item from any other source to the GUI
+        if latest_other_item is not None:
+            source = latest_other_item.get("source", "")
+            title = latest_other_item.get("title", "")
+            content = latest_other_item.get("content", "")
+            bg_color = '#443C68'
+            news_title_label = tk.Label(other_news_frame, text=title, font=("Helvetica", 16), bg=bg_color, fg="#ffffff")
+            news_title_label.pack()
+            if content:
+                news_content_label = tk.Label(other_news_frame, text=content, font=("Helvetica", 12), bg=bg_color, fg="#ffffff", wraplength=600)
+                news_content_label.pack()
+                news_other_source_label = tk.Label(other_news_frame, text="source: "+source, font=("Helvetica", 10))
+                news_other_source_label.pack()
+
+
+
 
     # Create a frame for the order creation widgets
     order_frame = tk.Frame(root)
@@ -23,13 +103,13 @@ def create_gui():
 
     # Get the list of symbols using the Symbol resource
     symbol_data = client.Symbol.Symbol_get().result()[0]
-    symbols = [symbol['name'] for symbol in symbol_data['result']]
+    symbols += [symbol['name'] for symbol in symbol_data['result']]
 
-    # Create a dropdown menu for symbol selection
+   # Create a dropdown menu for symbol selection
     symbol_var = tk.StringVar()
     symbol_var.set(symbols[0])  # default value
-    symbol_menu = tk.OptionMenu(order_frame, symbol_var, *symbols)
-    symbol_menu.pack(side=tk.LEFT)
+    symbol_menu = tk.OptionMenu(other_news_frame, symbol_var, *symbols)
+    symbol_menu.pack()
 
     # Create the Entry widget for the search query
     search_entry = tk.Entry(order_frame)
@@ -53,16 +133,6 @@ def create_gui():
     leverage_entry.insert(0, "1")  # Set the default leverage to 1
     leverage_entry.pack()
 
-    # # Create a dropdown menu for side selection
-    side_var = tk.StringVar()
-    side_var.set("Buy")  # default value
-    side_menu = tk.OptionMenu(order_frame, side_var, "Buy", "Sell")
-    side_menu.pack()
-
-    # # Create the button to create the order
-    # create_button = tk.Button(order_frame, text="Create Order", command=lambda: create_order(symbol_var, qty_entry, leverage_entry, side_var))
-    # create_button.pack()
-
     # Create buttons for side selection
     buy_long_button = tk.Button(order_frame, text="Buy/Long", command=lambda: create_order(symbol_var, qty_entry, leverage_entry, tk.StringVar(value="Buy")))
     buy_long_button.pack(side=tk.LEFT)
@@ -70,39 +140,8 @@ def create_gui():
     sell_short_button = tk.Button(order_frame, text="Sell/Short", command=lambda: create_order(symbol_var, qty_entry, leverage_entry, tk.StringVar(value="Sell")))
     sell_short_button.pack(side=tk.LEFT)
 
-    # Create the button to create the order
-    create_button = tk.Button(order_frame, text="Create Order", command=lambda: create_order(symbol_var, qty_entry, leverage_entry, side_var))
-    create_button.pack(side=tk.LEFT)
 
-
-
-    # Get the news data
-    news_data = get_news_data()
-
-    # Create a frame for the news widgets
-    news_frame = tk.Frame(root)
-    news_frame.pack(padx=20, pady=20)
-
-    # Create a label for the news data
-    news_label = tk.Label(news_frame, text="News")
-    news_label.pack()
-
-    # Add the news data to the GUI
-    if news_data is not None:
-        for item in news_data:
-            title = item.get("title", "")
-            content = item.get("content", "")
-            source = item.get("source", "")
-            news_title_label = tk.Label(news_frame, text=title, font=("Helvetica", 16))
-            news_title_label.pack()
-            if content:
-                news_content_label = tk.Label(news_frame, text=content, font=("Helvetica", 12))
-                news_content_label.pack()
-            news_source_label = tk.Label(news_frame, text=source, font=("Helvetica", 10))
-            news_source_label.pack()
-            news_divider_label = tk.Label(news_frame, text="--------------------------")
-            news_divider_label.pack()
-
+    
     # Run the main loop
     root.mainloop()
 if __name__ == "__main__":
